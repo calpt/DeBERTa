@@ -4,12 +4,10 @@ numpy
 pytest
 regex
 scipy
-sklearn
+scikit-learn
 tqdm
 ujson
 seqeval
 psutil
 sentencepiece
-#GitPython
 torch
-#torchvision

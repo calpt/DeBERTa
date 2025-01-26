@@ -16,12 +16,10 @@ function setup_wiki_data(){
 	fi
 
 	if [[ ! -e  $data_dir/test.txt ]]; then
-		wget -q https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-103-v1.zip -O $cache_dir/wiki103.zip
-		unzip -j $cache_dir/wiki103.zip -d $cache_dir/wiki103
 		mkdir -p $data_dir
-		python ./prepare_data.py -i $cache_dir/wiki103/wiki.train.tokens -o $data_dir/train.txt --max_seq_length $max_seq_length
-		python ./prepare_data.py -i $cache_dir/wiki103/wiki.valid.tokens -o $data_dir/valid.txt --max_seq_length $max_seq_length
-		python ./prepare_data.py -i $cache_dir/wiki103/wiki.test.tokens -o $data_dir/test.txt --max_seq_length $max_seq_length
+		python ./prepare_data.py -i wikitext -n wikitext-103-raw-v1 -s train -o $data_dir/train.txt --max_seq_length $max_seq_length
+		python ./prepare_data.py -i wikitext -n wikitext-103-raw-v1 -s validation -o $data_dir/valid.txt --max_seq_length $max_seq_length
+		python ./prepare_data.py -i wikitext -n wikitext-103-raw-v1 -s test -o $data_dir/test.txt --max_seq_length $max_seq_length
 	fi
 }
 
@@ -49,9 +47,9 @@ case ${init,,} in
 	deberta-v3-xsmall)
 	parameters=" --num_train_epochs 1 \
 	--model_config rtd_xsmall.json \
-	--warmup 10000 \
+	--warmup 0.1 \
 	--learning_rate 3e-4 \
-	--train_batch_size 64 \
+	--train_batch_size 16 \
 	--decoupled_training True \
 	--fp16 True "
 		;;
@@ -72,18 +70,18 @@ case ${init,,} in
 	deberta-v3-base)
 	parameters=" --num_train_epochs 1 \
 	--model_config rtd_base.json \
-	--warmup 10000 \
+	--warmup 0.1 \
 	--learning_rate 1e-4 \
-	--train_batch_size 256 \
+	--train_batch_size 16 \
 	--decoupled_training True \
 	--fp16 True "
 		;;
 	deberta-v3-large)
 	parameters=" --num_train_epochs 1 \
 	--model_config rtd_large.json \
-	--warmup 10000 \
+	--warmup 0.1 \
 	--learning_rate 1e-4 \
-	--train_batch_size 256 \
+	--train_batch_size 16 \
 	--decoupled_training True \
 	--fp16 True "
 		;;
