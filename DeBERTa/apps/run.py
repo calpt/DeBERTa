@@ -59,8 +59,8 @@ def train_model(args, model, device, train_data, eval_data, run_eval_fn, train_f
   def data_fn(trainer):
     return train_data, num_train_steps, None
 
-  def eval_fn(trainer, model, device, tag):
-    results = run_eval_fn(trainer.args, model, device, eval_data, tag, steps=trainer.trainer_state.steps)
+  def eval_fn(trainer, model, device, tag, wandb=None):
+    results = run_eval_fn(trainer.args, model, device, eval_data, tag, steps=trainer.trainer_state.steps, wandb=wandb)
     eval_metric = np.mean([v[0] for k,v in results.items() if 'train' not in k])
     return eval_metric
 
@@ -460,6 +460,32 @@ def build_argument_parser():
             default=False,
             type=boolean_string,
             help="Whether to export model to ONNX format.")
+
+  # Add wandb integration arguments
+  parser.add_argument('--use_wandb',
+            default=False,
+            type=boolean_string,
+            help="Whether to use Weights & Biases for logging.")
+
+  parser.add_argument('--wandb_project',
+            default="DeBERTa",
+            type=str,
+            help="Name of the Weights & Biases project.")
+
+  parser.add_argument('--wandb_name',
+            default=None,
+            type=str,
+            help="Name of the Weights & Biases run. If not provided, task name will be used.")
+
+  parser.add_argument('--wandb_id',
+            default=None,
+            type=str,
+            help="ID of existing run to resume in Weights & Biases.")
+            
+  parser.add_argument('--wandb_log_interval',
+            default=100,
+            type=int,
+            help="How often to log training metrics to wandb.")
 
   return parser
 

@@ -12,7 +12,7 @@ function setup_wiki_data(){
 	task=$1
 	mkdir -p $cache_dir
 	if [[ ! -e  $cache_dir/spm.model ]]; then
-		wget -q https://huggingface.co/microsoft/deberta-v3-base/resolve/main/spm.model -O $cache_dir/spm.model
+		wget -q https://huggingface.co/microsoft/mdeberta-v3-base/resolve/main/spm.model -O $cache_dir/spm.model
 	fi
 
 	if [[ ! -e  $data_dir/test.txt ]]; then
@@ -38,9 +38,9 @@ case ${init,,} in
 	--warmup 10000 \
 	--num_training_steps 100000 \
 	--learning_rate 5e-5 \
-	--train_batch_size 256 \
-	--init_generator <TODO: generator checkpoint> \
-	--init_discriminator <TODO: discriminator checkpoint> \
+	--train_batch_size 16 \
+	--init_generator models/deberta-v3-xsmall/pytorch_model.generator.bin \
+	--init_discriminator models/deberta-v3-xsmall/pytorch_model.bin \
 	--decoupled_training True \
 	--fp16 True "
 		;;
@@ -64,6 +64,20 @@ case ${init,,} in
 	--train_batch_size 256 \
 	--init_generator <TODO: generator checkpoint> \
 	--init_discriminator <TODO: discriminator checkpoint> \
+	--decoupled_training True \
+	--fp16 True "
+		;;
+	mdeberta-v3-base-continue)
+	# wget https://huggingface.co/microsoft/mdeberta-v3-base/resolve/main/pytorch_model.generator.bin
+	# wget https://huggingface.co/microsoft/mdeberta-v3-base/resolve/main/pytorch_model.bin
+	parameters=" --num_train_epochs 1 \
+	--model_config rtd_mbase.json \
+	--warmup 10000 \
+	--num_training_steps 100000 \
+	--learning_rate 5e-5 \
+	--train_batch_size 32 \
+	--init_generator models/mdeberta-v3-base/pytorch_model.generator.bin \
+	--init_discriminator models/mdeberta-v3-base/pytorch_model.bin \
 	--decoupled_training True \
 	--fp16 True "
 		;;
@@ -105,4 +119,4 @@ python -m DeBERTa.apps.run --model_config config.json  \
 	--data_dir $data_dir \
 	--vocab_path $cache_dir/spm.model \
 	--vocab_type spm \
-	--output_dir /tmp/ttonly/$tag/$task  $parameters
+	--output_dir output/$tag/$task  $parameters

@@ -269,7 +269,7 @@ dataset_size = dataset_size, shuffle=True, **kwargs)
     return train_fn
 
   def get_eval_fn(self):
-    def eval_fn(args, model, device, eval_data, prefix=None, tag=None, steps=None):
+    def eval_fn(args, model, device, eval_data, prefix=None, tag=None, steps=None, wandb=None):
       # Run prediction for full data
       prefix = f'{tag}_{prefix}' if tag is not None else prefix
       eval_results=OrderedDict()
@@ -321,6 +321,8 @@ dataset_size = dataset_size, shuffle=True, **kwargs)
           logger.info("***** Eval results-{}-{} *****".format(name, prefix))
           for key in sorted(result.keys()):
             logger.info("  %s = %s", key, str(result[key]))
+          if wandb is not None:
+            wandb.log({f"eval/{k}": v for k, v in result.items()}, step=steps)
         eval_results[name]=(eval_metric, predicts, labels)
 
       return eval_results
@@ -329,7 +331,7 @@ dataset_size = dataset_size, shuffle=True, **kwargs)
   def get_decoupled_loss_fn(self, args, model, data_fn, device, num_training_steps):
     rand = random.Random(0)
   
-    def eval_fn(trainer, model, device, tag):
+    def eval_fn(trainer, model, device, tag, **kwargs):
       return 0
   
     def d_loss_fn(trainer, model, data):

@@ -4,8 +4,8 @@ import argparse
 from tqdm import tqdm
 from datasets import load_dataset
 
-def tokenize_data(dataset_name, subset_name, split, output=None, max_seq_length=512):
-  p,t=deberta.load_vocab(vocab_path=None, vocab_type='spm', pretrained_id='deberta-v3-base')
+def tokenize_data(dataset_name, subset_name, split, output=None, max_seq_length=512, max_items=-1):
+  p,t=deberta.load_vocab(vocab_path=None, vocab_type='spm', pretrained_id='mdeberta-v3-base')
   tokenizer=deberta.tokenizers[t](p)
   if output is None:
     output=f'{subset_name}_{split}.spm'
@@ -18,6 +18,8 @@ def tokenize_data(dataset_name, subset_name, split, output=None, max_seq_length=
     else:
       tokens = []
     all_tokens.extend(tokens)
+    if max_items > 0 and len(all_tokens) >= max_items:
+      break
 
   print(f'Loaded {len(all_tokens)} tokens from {subset_name} {split}')
   lines = 0
@@ -36,5 +38,6 @@ parser.add_argument('-n', '--name', required=True, help='The dataset subset name
 parser.add_argument('-s', '--split', default='train', help='The dataset split')
 parser.add_argument('-o', '--output', default=None, help='The output data path')
 parser.add_argument('--max_seq_length', type=int, default=512, help='Maxium sequence length of inputs')
+parser.add_argument('--max_items', type=int, default=-1, help='Maximum number of items to process')
 args = parser.parse_args()
-tokenize_data(args.input, args.name, args.split, args.output, args.max_seq_length)
+tokenize_data(args.input, args.name, args.split, args.output, args.max_seq_length, args.max_items)

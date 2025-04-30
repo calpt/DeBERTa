@@ -19,6 +19,13 @@ from ..data import BatchSampler, DistributedBatchSampler,RandomSampler,Sequentia
 from ..utils import get_logger
 logger = get_logger()
 
+# Import wandb for logging
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+
 from .dist_launcher import get_ngpu
 from .optimizer_utils import create_xoptimizer
 from ._utils import batch_to
@@ -118,6 +125,24 @@ class DistributedTrainer:
 
     self.initialized = False
     self.update_fn = update_fn
+    
+    # Initialize wandb if available and enabled
+    self.use_wandb = getattr(args, 'use_wandb', False) and WANDB_AVAILABLE
+    if self.use_wandb and self.args.rank < 1:  # Only log on main process
+      wandb_project = getattr(args, 'wandb_project', 'DeBERTa')
+      wandb_name = getattr(args, 'wandb_name', None)
+      wandb_id = getattr(args, 'wandb_id', None)
+      wandb_config = {k: v for k, v in vars(args).items() if not k.startswith('_')}
+
+      wandb.init(
+          project=wandb_project,
+          name=wandb_name,
+          id=wandb_id,
+          config=wandb_config,
+          resume="allow"
+      )
+      # Set the trainer_state run_id to wandb run id for later reference
+      self.trainer_state.run_id = wandb.run.id
 
   def initialize(self):
     set_random_seed(self.args.seed)
@@ -170,7 +195,7 @@ class DistributedTrainer:
     _metric = self.trainer_state.best_metric
     _steps = self.trainer_state.best_steps
     if self.eval_fn is not None:
-      metric = self.eval_fn(self, self.model, self.device, tag=f'{self.trainer_state.steps:06}-{self.training_steps}')
+      metric = self.eval_fn(self, self.model, self.device, tag=f'{self.trainer_state.steps:06}-{self.training_steps}', wandb=wandb)
       if metric > _metric:
         _metric = metric
         _steps = self.trainer_state.steps
@@ -229,6 +254,17 @@ class DistributedTrainer:
 
     if self.post_loss_fn is not None:
       self.post_loss_fn(forward_outputs)
+
+    # Log training metrics to wandb
+    if self.use_wandb and self.args.rank < 1 and self.trainer_state.steps % getattr(self.args, 'wandb_log_interval', 100) == 0:
+      metrics = {
+        f"train/{self.trainer_state.name}/loss": step_loss, 
+        f"train/{self.trainer_state.name}/global_step": self.trainer_state.steps,
+        f"train/{self.trainer_state.name}/examples": batch_size,
+        f"train/{self.trainer_state.name}/loss_scale": loss_scale,
+        f"train/{self.trainer_state.name}/learning_rate": self.optimizer.get_lr()[0] if hasattr(self.optimizer, 'get_lr') else None
+      }
+      wandb.log(metrics, step=self.trainer_state.steps)
 
     if self.trainer_state.steps%100 == 0:
       self.trainer_state.report_state()
